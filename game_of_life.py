@@ -23,41 +23,21 @@ class LiveCell(Cell):
     def next_state(self, neighbors: int) -> int:
         return 1 if neighbors in [2, 3] else 0
 
-class GameOfLife:
-    def __init__(self, grid: List[List[int]]):
-        """Initialize the game with a grid where 1 represents live cells and 0 represents dead cells."""
-        self.grid = grid
+class Grid:
+    def __init__(self, data: List[List[int]]):
+        self._validate(data)
+        self.data = data
 
-    def _validate_grid(self):
+    def _validate(self, data: List[List[int]]) -> None:
         """Validate the grid to ensure it is a valid grid."""
-        if not self.grid:
-            raise ValueError("Grid is empty")
-
-    def _empty_grid(self) -> List[List[int]]:
-        """Return an empty grid of the same size as the current grid."""
-        return [[0 for _ in range(len(self.grid[0]))] for _ in range(len(self.grid))]
-
-    def run(self, iterations: int = 1) -> List[List[int]]:
-        """Run the game of life for the grid."""
-        for _ in range(iterations):
-            next_grid = self.get_next_state()
-            self.grid = next_grid
-        return next_grid
-
-    def get_next_state(self) -> List[List[int]]:
-        """Calculate and return the next state of the grid based on Conway's Game of Life rules."""
-        if len(self.grid) == 0:
+        if not data:
             return [[]]
 
-        next_grid = self._empty_grid()
-        for row in range(len(self.grid)):
-            for col in range(len(self.grid[row])):
-                cell = CellFactory.get_cell(self.grid[row][col])
-                neighbors = self._get_neighbors(row, col)
-                next_grid[row][col] = cell.next_state(neighbors)
-        return next_grid
+    def create_empty_grid(self) -> 'Grid':
+        """Return an empty grid of the same size as the current grid."""
+        return Grid([[0 for _ in range(len(self.data[0]))] for _ in range(len(self.data))])
 
-    def _get_neighbors(self, row: int, col: int) -> int:
+    def get_neighbors(self, row: int, col: int) -> int:
         """Get all valid neighbor coordinates for a given cell."""
         raw_neighbors = [
             (row+1,col),
@@ -76,11 +56,36 @@ class GameOfLife:
         def _count():
             count = 0
             for n_row, n_col in neighbors:
-                count += self.grid[n_row][n_col]
+                count += self.data[n_row][n_col]
             return count
         
         return _count()
 
     def _is_valid_neighbor(self, position: Tuple[int, int]) -> bool:
         """Check if a neighbor is within the grid boundaries."""
-        return 0 <= position[0] < len(self.grid) and 0 <= position[1] < len(self.grid[position[0]])
+        return 0 <= position[0] < len(self.data) and 0 <= position[1] < len(self.data[position[0]])
+
+class GameOfLife:
+    def __init__(self, grid: List[List[int]]):
+        """Initialize the game with a grid where 1 represents live cells and 0 represents dead cells."""
+        self.grid = Grid(grid)
+
+    def run(self, iterations: int = 1) -> List[List[int]]:
+        """Run the game of life for the grid."""
+        for _ in range(iterations):
+            next_grid = self.get_next_state()
+            self.grid = next_grid
+        return next_grid.data
+
+    def get_next_state(self) -> Grid:
+        """Calculate and return the next state of the grid based on Conway's Game of Life rules."""
+        if len(self.grid.data) == 0:
+            return Grid([[]])
+
+        next_grid = self.grid.create_empty_grid()
+        for row in range(len(self.grid.data)):
+            for col in range(len(self.grid.data[row])):
+                cell = CellFactory.get_cell(self.grid.data[row][col])
+                neighbors = self.grid.get_neighbors(row, col)
+                next_grid.data[row][col] = cell.next_state(neighbors)
+        return next_grid
