@@ -8,15 +8,23 @@ class GameOfLife:
         """Initialize the game with a grid where 1 represents live cells and 0 represents dead cells."""
         self.grid = grid
 
-    def get_next_state(self) -> List[List[int]]:
+    def run_and_get_next_state(self) -> List[List[int]]:
         """Calculate and return the next state of the grid based on Conway's Game of Life rules."""
         # TODO: Implement this method
 
+        # Create a copy of the grid to store the next state
+        next_state = copy.deepcopy(self.grid)
+
         for row in range(len(self.grid)):
             for col in range(len(self.grid[row])):
-                self.grid[row][col] = 1 if self._get_neighbors(row, col) == 2 else 0
+                if self._get_neighbors(row, col) == 3:
+                    next_state[row][col] = 1
+                elif self._get_neighbors(row, col) == 2 and self.grid[row][col] == 1:
+                    next_state[row][col] = 1
+                else:
+                    next_state[row][col] = 0
 
-        return self.grid
+        return next_state
 
     # def count_live_neighbors(self, row: int, col: int) -> int:
     #     """Count the number of live neighbors for a given cell."""
@@ -27,15 +35,13 @@ class GameOfLife:
         """Get all valid neighbor coordinates for a given cell."""
         # TODO: Implement this method
 
-        from itertools import product
+        alive_count = 0
+        for dx in range(row - 1, row + 2):
+            for dy in range(col - 1, col + 2):
+                if self._is_valid_neighbor((dx, dy)) and (dx, dy) != (row, col):
+                    alive_count += self.grid[dx][dy]
 
-        possible_neighbors = list(set([row, col, row - 1, col - 1, row + 1, col + 1]))
-        neighbors = list(filter(self._is_valid_neighbor, product(possible_neighbors, repeat=2)))
-        neighbors.remove((row, col))
-
-        return sum(
-            self.grid[n_row][n_col] for n_row, n_col in neighbors
-        )
+        return alive_count
 
     def _is_valid_neighbor(self, position: Tuple[int, int]) -> bool:
         """Check if a neighbor is within the grid boundaries."""
