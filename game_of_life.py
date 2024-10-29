@@ -1,9 +1,27 @@
-# game_of_life.py
 from typing import List, Set, Tuple
 import copy
 import pdb
 from itertools import product
+from abc import ABC, abstractmethod
 
+
+class Cell(ABC):
+    @abstractmethod
+    def next_state(self, neighbors: int) -> int:
+        pass
+
+class CellFactory:
+    @staticmethod
+    def get_cell(state: int) -> Cell:
+        return LiveCell() if state == 1 else DeadCell()
+
+class DeadCell(Cell):
+    def next_state(self, neighbors: int) -> int:
+        return 1 if neighbors == 3 else 0
+
+class LiveCell(Cell):
+    def next_state(self, neighbors: int) -> int:
+        return 1 if neighbors in [2, 3] else 0
 
 class GameOfLife:
     def __init__(self, grid: List[List[int]]):
@@ -34,32 +52,34 @@ class GameOfLife:
         next_grid = self._empty_grid()
         for row in range(len(self.grid)):
             for col in range(len(self.grid[row])):
-                if self._get_neighbors(row, col) == 2:
-                    next_grid[row][col] = self.grid[row][col]
-                elif self.grid[row][col] == 0 and self._get_neighbors(row, col) == 3:
-                    next_grid[row][col] = 1
-                elif self.grid[row][col] == 1 and self._get_neighbors(row, col) == 3:
-                    next_grid[row][col] = 1
-                elif self.grid[row][col] == 1 and self._get_neighbors(row, col) >= 4:
-                    next_grid[row][col] = 0
+                cell = CellFactory.get_cell(self.grid[row][col])
+                neighbors = self._get_neighbors(row, col)
+                next_grid[row][col] = cell.next_state(neighbors)
         return next_grid
 
     def _get_neighbors(self, row: int, col: int) -> int:
         """Get all valid neighbor coordinates for a given cell."""
-        # Generate all possible combinations of -1, 0, 1 for row and column offsets
-        offsets = list(product([-1, 0, 1], repeat=2))
-        # Remove (0,0) as it's the cell itself
-        offsets.remove((0, 0))
-        
-        # Generate neighbor coordinates and filter invalid ones
-        neighbors = [
-            (row + dx, col + dy) 
-            for dx, dy in offsets 
-            if self._is_valid_neighbor((row + dx, col + dy))
+        raw_neighbors = [
+            (row+1,col),
+            (row-1,col),
+            (row,col+1),
+            (row,col-1),
+            (row+1,col+1),
+            (row+1,col-1),
+            (row-1,col+1),
+            (row-1,col-1)
         ]
+
+        neighbors = [(row,col) if self._is_valid_neighbor((row, col)) else None for row, col in raw_neighbors]
+        neighbors = [n for n in neighbors if n is not None]
         
-        # Count live neighbors
-        return sum(self.grid[n_row][n_col] for n_row, n_col in neighbors)
+        def _count():
+            count = 0
+            for n_row, n_col in neighbors:
+                count += self.grid[n_row][n_col]
+            return count
+        
+        return _count()
 
     def _is_valid_neighbor(self, position: Tuple[int, int]) -> bool:
         """Check if a neighbor is within the grid boundaries."""
